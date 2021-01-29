@@ -1,0 +1,9 @@
+[submodule "dlsa"]
+	path = dlsa
+	url = git@github.com:feng-li/dlsa.git
+[submodule "dqr"]
+	path = dqr
+	url = git@github.com:feng-li/dqr.git
+[submodule "darima"]
+	path = darima
+	url = git@github.com:xqnwang/darima.git
