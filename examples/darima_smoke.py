@@ -40,9 +40,10 @@ def main() -> None:
             value_col="value",
             time_col="time",
             tol=tol,
-            order=(1, 0, 0),
-            trend="n",
-            maxiter=500,
+            max_p=3,
+            max_q=3,
+            max_order=4,
+            stepwise=True,
         )
         assert mapped.count() == partition_num
 

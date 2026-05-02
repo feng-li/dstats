@@ -1,8 +1,7 @@
 """Python-native DARIMA migration slice.
 
-This module translates the small R-backed DARIMA path into Python. It supports
-explicit ARIMA orders first; automatic model search is intentionally left out of
-this first slice.
+This module translates the small R-backed DARIMA path into Python. Automatic
+ARIMA selection is handled by statsforecast's AutoARIMA.
 """
 
 from __future__ import annotations
@@ -15,7 +14,7 @@ from scipy.stats import norm
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as F
 from pyspark.sql.types import DoubleType, LongType, StructField, StructType
-from statsmodels.tsa.arima.model import ARIMA
+from statsforecast.models import AutoARIMA
 
 
 def ar_coefficients(
@@ -114,46 +113,70 @@ def fit_darima_partition(
     time_col: str | None = None,
     period: int = 1,
     tol: int = 50,
-    order: tuple[int, int, int] = (1, 0, 0),
-    seasonal_order: tuple[int, int, int] = (0, 0, 0),
-    trend: str = "n",
-    maxiter: int = 200,
+    d: int | None = None,
+    seasonal_d: int | None = None,
+    max_p: int = 5,
+    max_q: int = 5,
+    max_P: int = 2,
+    max_Q: int = 2,
+    max_order: int = 5,
+    max_d: int = 2,
+    max_D: int = 1,
+    stepwise: bool = True,
+    approximation: bool | None = False,
+    allowmean: bool = True,
+    allowdrift: bool = True,
+    nmodels: int = 94,
 ) -> pd.DataFrame:
     """Fit one partition and return weighted AR-representation coefficients."""
 
     if time_col:
         pdf = pdf.sort_values(time_col)
     x = pdf[value_col].dropna().to_numpy(dtype=float)
-    if len(x) <= max(10, sum(order) + sum(seasonal_order) + period):
+    if len(x) <= max(10, 2 * period):
         raise ValueError("DARIMA partition is too small for the requested model")
 
-    full_seasonal_order = (*seasonal_order, period if period > 1 else 0)
-    result = ARIMA(
-        x,
-        order=order,
-        seasonal_order=full_seasonal_order,
-        trend=trend,
-        enforce_stationarity=False,
-        enforce_invertibility=False,
-    ).fit(method_kwargs={"maxiter": maxiter})
+    model = AutoARIMA(
+        d=d,
+        D=seasonal_d,
+        max_p=max_p,
+        max_q=max_q,
+        max_P=max_P,
+        max_Q=max_Q,
+        max_order=max_order,
+        max_d=max_d,
+        max_D=max_D,
+        seasonal=period > 1,
+        season_length=period,
+        stepwise=stepwise,
+        approximation=approximation,
+        allowmean=allowmean,
+        allowdrift=allowdrift,
+        nmodels=nmodels,
+    ).fit(x)
+    fitted = model.model_
+    coef_dict = fitted.get("coef", {})
+    arma = fitted.get("arma", (0, 0, 0, 0, period, 0, 0))
+    model_period = int(arma[4]) if len(arma) >= 5 else period
+    model_d = int(arma[5]) if len(arma) >= 6 else 0
+    model_D = int(arma[6]) if len(arma) >= 7 else 0
 
-    params = dict(zip(result.param_names, np.asarray(result.params, dtype=float)))
-    sigma2 = float(params.get("sigma2", np.nanvar(result.resid, ddof=1)))
+    sigma2 = float(fitted.get("sigma2", np.nanvar(fitted.get("residuals", x), ddof=1)))
     if not np.isfinite(sigma2) or sigma2 <= 0:
         raise ValueError("DARIMA partition produced a non-positive innovation variance")
 
-    mean = float(params.get("const", params.get("intercept", 0.0)))
-    drift = float(params.get("x1", params.get("drift", 0.0)))
+    mean = float(coef_dict.get("intercept", coef_dict.get("mean", 0.0)))
+    drift = float(coef_dict.get("drift", 0.0))
     coef = ar_coefficients(
-        ar=np.asarray(result.arparams, dtype=float),
-        d=order[1],
-        ma=np.asarray(result.maparams, dtype=float),
-        sar=np.asarray(getattr(result, "seasonalarparams", []), dtype=float),
-        seasonal_d=seasonal_order[1],
-        sma=np.asarray(getattr(result, "seasonalmaparams", []), dtype=float),
+        ar=_indexed_coefficients(coef_dict, "ar"),
+        d=model_d,
+        ma=_indexed_coefficients(coef_dict, "ma"),
+        sar=_indexed_coefficients(coef_dict, "sar"),
+        seasonal_d=model_D,
+        sma=_indexed_coefficients(coef_dict, "sma"),
         mean=mean,
         drift=drift,
-        period=period,
+        period=model_period,
         tol=tol,
     )
 
@@ -173,10 +196,20 @@ def fit_darima_partitions(
     time_col: str | None = None,
     period: int = 1,
     tol: int = 50,
-    order: tuple[int, int, int] = (1, 0, 0),
-    seasonal_order: tuple[int, int, int] = (0, 0, 0),
-    trend: str = "n",
-    maxiter: int = 200,
+    d: int | None = None,
+    seasonal_d: int | None = None,
+    max_p: int = 5,
+    max_q: int = 5,
+    max_P: int = 2,
+    max_Q: int = 2,
+    max_order: int = 5,
+    max_d: int = 2,
+    max_D: int = 1,
+    stepwise: bool = True,
+    approximation: bool | None = False,
+    allowmean: bool = True,
+    allowdrift: bool = True,
+    nmodels: int = 94,
 ) -> DataFrame:
     """Fit DARIMA partition models with Spark 4 ``applyInPandas``."""
 
@@ -190,10 +223,20 @@ def fit_darima_partitions(
             time_col=time_col,
             period=period,
             tol=tol,
-            order=order,
-            seasonal_order=seasonal_order,
-            trend=trend,
-            maxiter=maxiter,
+            d=d,
+            seasonal_d=seasonal_d,
+            max_p=max_p,
+            max_q=max_q,
+            max_P=max_P,
+            max_Q=max_Q,
+            max_order=max_order,
+            max_d=max_d,
+            max_D=max_D,
+            stepwise=stepwise,
+            approximation=approximation,
+            allowmean=allowmean,
+            allowdrift=allowdrift,
+            nmodels=nmodels,
         )
 
     return sdf.groupBy(partition_col).applyInPandas(mapper, schema=schema)
@@ -361,6 +404,15 @@ def _ar_to_ma(ar: np.ndarray, steps: int) -> np.ndarray:
         upto = min(len(ar), idx)
         psi_full[idx] = sum(ar[j - 1] * psi_full[idx - j] for j in range(1, upto + 1))
     return psi_full[1:]
+
+
+def _indexed_coefficients(coef_dict: dict, prefix: str) -> np.ndarray:
+    values = []
+    idx = 1
+    while f"{prefix}{idx}" in coef_dict:
+        values.append(float(coef_dict[f"{prefix}{idx}"]))
+        idx += 1
+    return np.asarray(values, dtype=float)
 
 
 dlsa_mapreduce = darima_mapreduce

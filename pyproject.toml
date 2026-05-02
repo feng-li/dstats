@@ -14,6 +14,7 @@ dependencies = [
     "pandas",
     "scipy",
     "statsmodels",
+    "statsforecast",
     "scikit-learn",
 ]
 

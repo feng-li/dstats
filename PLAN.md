@@ -136,14 +136,12 @@ Initial scope:
 - Move the DLSA-style ARIMA coefficient aggregation.
 - Move forecasting and evaluation wrappers.
 - Translate the existing R helper logic to Python.
-- Use `statsmodels` for ARIMA fitting and NumPy/SciPy for AR conversion,
-  forecast intervals, and evaluation.
+- Use `statsforecast.models.AutoARIMA` for automatic ARIMA selection and
+  NumPy/SciPy for AR conversion, forecast intervals, and evaluation.
 
 Important constraint:
 
-The first Python-native DARIMA slice does not need to reproduce R
-`forecast::auto.arima` model search. Start with explicit ARIMA orders and keep
-the model-search question separate.
+Use StatsForecast `AutoARIMA` as the replacement for R `forecast::auto.arima`.
 
 Validation:
 
@@ -231,5 +229,7 @@ These can be added after the core migration paths are working.
 - [x] Add a small DLSA check against Spark-written `airdelay_small.parquet`
       with `nominal_delay` and `real_delay` labels.
 - [x] Migrate Python-native DARIMA core and local Spark demo.
+- [x] Add a DARIMA electricity-data example using StatsForecast AutoARIMA.
+- [x] Merge bundled electricity series into `data/electricity.parquet`.
 - [ ] Migrate DQR core and local Spark demo.
 - [ ] Revisit DTS once the first three migrations are stable.
