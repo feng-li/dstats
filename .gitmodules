@@ -1,6 +1,3 @@
-[submodule "dqr"]
-	path = dqr
-	url = git@github.com:feng-li/dqr.git
 [submodule "dvi"]
 	path = dvi
 	url = git@github.com:feng-li/dvi.git

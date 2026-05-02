@@ -157,6 +157,8 @@ Exit criteria:
 
 ## Phase 4: Migrate `dqr` Third
 
+Status: first Spark 4 slice complete.
+
 Source reference:
 
 ```text
@@ -231,5 +233,5 @@ These can be added after the core migration paths are working.
 - [x] Migrate Python-native DARIMA core and local Spark demo.
 - [x] Add a DARIMA electricity-data example using StatsForecast AutoARIMA.
 - [x] Merge bundled electricity series into `data/electricity.parquet`.
-- [ ] Migrate DQR core and local Spark demo.
+- [x] Migrate first DQR core slice and local Spark demo.
 - [ ] Revisit DTS once the first three migrations are stable.
