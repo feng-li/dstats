@@ -18,5 +18,13 @@ dependencies = [
     "scikit-learn",
 ]
 
+[project.optional-dependencies]
+dev = [
+    "pytest",
+]
+
 [tool.setuptools.packages.find]
 include = ["dstats"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

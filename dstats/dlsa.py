@@ -260,7 +260,7 @@ def _update_r(
 
     next_r = np.column_stack(
         (
-            np.row_stack((r, np.zeros(r.shape[1]))),
+            np.vstack((r, np.zeros(r.shape[1]))),
             np.append(solved, rpp),
         )
     )

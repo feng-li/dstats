@@ -61,6 +61,18 @@ Quick import check:
 python -c "import dstats; from dstats.spark import get_spark; print(dstats.__version__)"
 ```
 
+## Tests
+
+Install the test extra and run the compact synthetic suite:
+
+```sh
+python -m pip install -e '.[dev]'
+python -m pytest -q
+```
+
+The tests cover shared Spark helpers and small synthetic paths for DLSA, DARIMA,
+and DQR. Large prepared-data checks remain under `examples/`.
+
 ## Examples
 
 Synthetic smoke checks:

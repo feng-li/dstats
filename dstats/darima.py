@@ -42,8 +42,17 @@ def ar_coefficients(
     sar = np.asarray(sar, dtype=float)
     sma = np.asarray(sma, dtype=float)
 
+    if d < 0:
+        raise ValueError("d must be non-negative")
+    if seasonal_d < 0:
+        raise ValueError("seasonal_d must be non-negative")
+
     ar_poly = np.concatenate([[1.0], -ar])
-    ar_poly = _poly_power(ar_poly, d)
+    if d:
+        ar_poly = np.polynomial.polynomial.polymul(
+            ar_poly,
+            _poly_power(np.array([1.0, -1.0]), d),
+        )
 
     if period > 1 and len(sar):
         seasonal_ar = np.zeros(period * len(sar) + 1)
