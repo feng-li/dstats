@@ -29,6 +29,8 @@ Move behavior gradually and keep runnable checks after each step.
 - Prefer Spark 4 APIs such as `DataFrame.groupBy(...).applyInPandas(...)`.
 - Avoid the old `PandasUDFType.GROUPED_MAP` pattern in new code.
 - Avoid hardcoded cluster paths, Python paths, and `findspark`.
+- Do not add `rpy2` to the new package. Translate R-backed routines to Python
+  before moving them into `dstats`.
 - Use `.envrc` for local Spark/PySpark environment settings.
 - Preserve current outputs first; improve APIs only after behavior is covered by checks.
 - Add small local datasets or synthetic fixtures before migrating each method.
@@ -133,13 +135,15 @@ Initial scope:
 - Move the partition-level ARIMA fitting wrapper.
 - Move the DLSA-style ARIMA coefficient aggregation.
 - Move forecasting and evaluation wrappers.
-- Keep the R backend through `rpy2` initially.
-- Make R dependency failures explicit and easy to understand.
+- Translate the existing R helper logic to Python.
+- Use `statsmodels` for ARIMA fitting and NumPy/SciPy for AR conversion,
+  forecast intervals, and evaluation.
 
 Important constraint:
 
-`darima` has more external runtime risk than `dlsa` because it calls R code.
-Do not rewrite the R algorithms during the first migration. Preserve behavior first.
+The first Python-native DARIMA slice does not need to reproduce R
+`forecast::auto.arima` model search. Start with explicit ARIMA orders and keep
+the model-search question separate.
 
 Validation:
 
@@ -151,7 +155,6 @@ Validation:
 Exit criteria:
 
 - A local Spark 4 DARIMA demo runs from `dstats.darima`.
-- R-backed functions fail with clear messages when R packages are missing.
 - The old `run_darima.py` workflow has a minimal equivalent in the new module.
 
 ## Phase 4: Migrate `dqr` Third
@@ -212,7 +215,6 @@ For now, use `dts/` only as a reference.
 - Large internal package hierarchy.
 - Full CLI design.
 - Full documentation site.
-- Rewriting R algorithms in Python.
 - Performance tuning for a real cluster.
 - Migrating every old project script.
 
@@ -225,7 +227,9 @@ These can be added after the core migration paths are working.
 - [x] Create flat `dstats` package skeleton.
 - [x] Migrate shared Spark helper needed by DLSA.
 - [x] Migrate first DLSA core slice.
-- [ ] Add a committed DLSA local demo/check.
-- [ ] Migrate DARIMA core and local Spark demo.
+- [x] Add a committed DLSA local demo/check.
+- [x] Add a small DLSA check against Spark-written `airdelay_small.parquet`
+      with `nominal_delay` and `real_delay` labels.
+- [x] Migrate Python-native DARIMA core and local Spark demo.
 - [ ] Migrate DQR core and local Spark demo.
 - [ ] Revisit DTS once the first three migrations are stable.
