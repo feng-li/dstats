@@ -15,6 +15,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from dstats.dqr import dqr_fit
 from dstats.dqr import fit_quantile_pilot
 from dstats.spark import get_spark
+from dstats.spark import standardize_columns
+from dstats.spark import with_partition_id
 
 
 DEFAULT_DATA = Path("data/used_cars.parquet")
@@ -49,31 +51,10 @@ def load_used_cars(
     if sample_size <= len(FEATURE_COLS):
         raise ValueError(f"Only {sample_size} complete used-car rows were available")
 
-    prepared = standardize_features(selected, RAW_FEATURES)
+    prepared = standardize_columns(selected, RAW_FEATURES, prefix="z_")
     prepared = prepared.withColumn(LABEL_COL, F.log("price")).withColumn("intercept", F.lit(1.0))
-    prepared = prepared.select(LABEL_COL, *FEATURE_COLS).withColumn(
-        "partition_id",
-        F.pmod(F.monotonically_increasing_id(), F.lit(partitions)).cast("long"),
-    )
+    prepared = with_partition_id(prepared.select(LABEL_COL, *FEATURE_COLS), partitions)
     return prepared, FEATURE_COLS, sample_size
-
-
-def standardize_features(sdf: DataFrame, columns: list[str]) -> DataFrame:
-    """Add standardized ``z_*`` columns before fitting DQR."""
-
-    stats_row = sdf.agg(
-        *[F.mean(col).alias(f"{col}_mean") for col in columns],
-        *[F.stddev_samp(col).alias(f"{col}_std") for col in columns],
-    ).collect()[0]
-
-    out = sdf
-    for col in columns:
-        mean = float(stats_row[f"{col}_mean"])
-        std = float(stats_row[f"{col}_std"])
-        if not np.isfinite(std) or std <= 0:
-            raise ValueError(f"Feature {col!r} has non-positive standard deviation")
-        out = out.withColumn(f"z_{col}", ((F.col(col) - F.lit(mean)) / F.lit(std)).cast("double"))
-    return out
 
 
 def _read_raw_data(spark, path: Path, *, nrows: int) -> DataFrame:

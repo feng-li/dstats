@@ -80,6 +80,10 @@ python examples/darima_electricity.py
 python examples/dqr_used_cars.py --nrows 3000 --partitions 4 --pilot-fraction 0.4
 ```
 
+The compact `data/airdelay_small.parquet` artifact contains raw `ArrDelay` plus
+the 10 standardized feature columns. `examples/dlsa_airdelay_small.py` derives
+`nominal_delay` or `real_delay` from `ArrDelay` before modelling.
+
 ## Data Preparation
 
 The example datasets are prepared as Parquet so Spark can read them efficiently:
@@ -92,8 +96,10 @@ python examples/prepare_used_cars_parquet.py --out data/used_cars.parquet --mode
 
 Current local prepared datasets:
 
-- `data/airdelay_small.parquet`: DLSA airline-delay example with
-  `nominal_delay` and `real_delay` labels.
+- `data/airdelay_small.parquet`: compact airline-delay data with raw
+  `ArrDelay` plus 10 standardized feature columns: `Year`, `Month`,
+  `DayofMonth`, `DayOfWeek`, `DepTime`, `CRSDepTime`, `CRSArrTime`,
+  `ActualElapsedTime`, `Distance`, and `DepDelay`.
 - `data/electricity.parquet`: merged DARIMA electricity series in long format.
 - `data/used_cars.parquet`: raw numeric used-car columns for DQR. The DQR
   example creates `log_price`, `intercept`, and standardized `z_*` features
@@ -127,6 +133,15 @@ DQR:
 from dstats.dqr import dqr_fit
 from dstats.dqr import fit_quantile_partitions
 from dstats.dqr import qr_asymptotic_components
+```
+
+Shared Spark helpers:
+
+```py
+from dstats.spark import get_spark
+from dstats.spark import standardize_columns
+from dstats.spark import with_partition_id
+from dstats.spark import write_single_parquet
 ```
 
 ## Migration Notes

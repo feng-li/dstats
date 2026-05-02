@@ -1,4 +1,4 @@
-"""Small DLSA check using the local airdelay_small Parquet dataset."""
+"""Small DLSA check using the local compact airdelay Parquet dataset."""
 
 from __future__ import annotations
 
@@ -15,10 +15,11 @@ from dstats.dlsa import dlsa_fit
 from dstats.dlsa import dlsa_mapreduce
 from dstats.dlsa import fit_logistic_partitions
 from dstats.spark import get_spark
+from dstats.spark import with_partition_id
 
 
 DEFAULT_DATA = Path("data/airdelay_small.parquet")
-DELAY_COLS = ["nominal_delay", "real_delay"]
+DELAY_THRESHOLDS = {"nominal_delay": 0.0, "real_delay": 20.0}
 FEATURE_COLS = [
     "Year",
     "Month",
@@ -41,23 +42,44 @@ def load_airdelay_sdf(
     partition_num: int,
     label_col: str,
 ) -> DataFrame:
-    sdf = spark.read.parquet(str(path)).select(label_col, *FEATURE_COLS)
+    source = spark.read.parquet(str(path))
+    missing = sorted(set(FEATURE_COLS).difference(source.columns))
+    if missing:
+        raise ValueError(
+            f"{path} is missing required feature columns: {missing}."
+        )
+
+    if label_col not in source.columns:
+        if "ArrDelay" not in source.columns:
+            raise ValueError(
+                f"{path} must contain {label_col!r} or raw 'ArrDelay' so the delay label "
+                "can be derived."
+            )
+        threshold = DELAY_THRESHOLDS[label_col]
+        source = source.withColumn(label_col, (F.col("ArrDelay") > F.lit(threshold)).cast("long"))
+
+    sdf = source.select(label_col, *FEATURE_COLS)
     if nrows > 0:
         sdf = sdf.limit(nrows)
 
-    return (
-        sdf.withColumn("_row_id", F.monotonically_increasing_id())
-        .withColumn("partition_id", (F.col("_row_id") % F.lit(partition_num)).cast("long"))
-        .drop("_row_id")
-    )
+    return with_partition_id(sdf, partition_num)
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--path", type=Path, default=DEFAULT_DATA)
+    parser.add_argument(
+        "--path",
+        type=Path,
+        default=DEFAULT_DATA,
+        help="Parquet file containing ArrDelay or a delay label plus the 10 feature columns.",
+    )
     parser.add_argument("--nrows", type=int, default=5000)
     parser.add_argument("--partitions", type=int, default=4)
-    parser.add_argument("--label-col", choices=DELAY_COLS, default="nominal_delay")
+    parser.add_argument(
+        "--label-col",
+        choices=sorted(DELAY_THRESHOLDS),
+        default="nominal_delay",
+    )
     args = parser.parse_args()
 
     if not args.path.exists():

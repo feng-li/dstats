@@ -1,9 +1,8 @@
-"""Convert the large airdelay CSV into a DLSA-ready Parquet dataset."""
+"""Convert the large airdelay CSV into a compact DLSA Parquet dataset."""
 
 from __future__ import annotations
 
 import argparse
-import shutil
 import sys
 from pathlib import Path
 
@@ -17,6 +16,8 @@ from pyspark.sql.types import StructType
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from dstats.spark import get_spark
+from dstats.spark import standardize_columns
+from dstats.spark import write_single_parquet
 
 
 DEFAULT_CSV = Path("/data/fli/carbon/running/data/airdelay_small.csv")
@@ -78,19 +79,6 @@ def main() -> None:
 
     if not args.csv.exists():
         raise FileNotFoundError(args.csv)
-    if args.out.exists():
-        if args.mode == "error":
-            raise FileExistsError(args.out)
-        if args.mode == "ignore":
-            print(f"{args.out} already exists")
-            return
-        _remove_path(args.out)
-
-    args.out.parent.mkdir(parents=True, exist_ok=True)
-    tmp_dir = args.out.parent / f".{args.out.name}.spark-tmp"
-    if tmp_dir.exists():
-        _remove_path(tmp_dir)
-
     spark = get_spark(
         "dstats-prepare-airdelay-parquet",
         master="local[2]",
@@ -108,45 +96,21 @@ def main() -> None:
         data = (
             raw.select(
                 *[F.col(col).cast("double").alias(col) for col in FEATURE_COLS],
-                (F.col("ArrDelay") > 0).cast("long").alias("nominal_delay"),
-                (F.col("ArrDelay") > 20).cast("long").alias("real_delay"),
+                F.col("ArrDelay").cast("double").alias("ArrDelay"),
             )
-            .dropna(subset=[*FEATURE_COLS, "nominal_delay", "real_delay"])
+            .dropna(subset=[*FEATURE_COLS, "ArrDelay"])
         )
 
-        stats_exprs = []
-        for col in FEATURE_COLS:
-            stats_exprs.append(F.mean(col).alias(f"{col}__mean"))
-            stats_exprs.append(F.stddev_samp(col).alias(f"{col}__std"))
-        stats = data.agg(*stats_exprs).collect()[0].asDict()
+        data = standardize_columns(data, FEATURE_COLS, prefix="", keep_original=False)
 
-        for col in FEATURE_COLS:
-            mean = stats[f"{col}__mean"]
-            std = stats[f"{col}__std"]
-            if std is None or std == 0:
-                raise ValueError(f"Feature {col!r} has zero variance")
-            data = data.withColumn(col, ((F.col(col) - F.lit(mean)) / F.lit(std)).cast("double"))
-
-        output = data.select("nominal_delay", "real_delay", *FEATURE_COLS)
-        rows = output.count()
-        output.coalesce(1).write.mode("error").parquet(str(tmp_dir))
-        part_files = sorted(tmp_dir.glob("part-*.parquet"))
-        if len(part_files) != 1:
-            raise RuntimeError(f"Expected one Parquet part file, found {len(part_files)}")
-        shutil.move(str(part_files[0]), args.out)
+        output = data.select("ArrDelay", *FEATURE_COLS)
+        rows = write_single_parquet(output, args.out, mode=args.mode)
     finally:
         spark.stop()
-        if tmp_dir.exists():
-            _remove_path(tmp_dir)
-
-    print(f"Wrote {rows} rows to {args.out}")
-
-
-def _remove_path(path: Path) -> None:
-    if path.is_dir():
-        shutil.rmtree(path)
+    if rows is None:
+        print(f"{args.out} already exists")
     else:
-        path.unlink()
+        print(f"Wrote {rows} rows to {args.out}")
 
 
 if __name__ == "__main__":

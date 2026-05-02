@@ -228,8 +228,9 @@ These can be added after the core migration paths are working.
 - [x] Migrate shared Spark helper needed by DLSA.
 - [x] Migrate first DLSA core slice.
 - [x] Add a committed DLSA local demo/check.
-- [x] Add a small DLSA check against Spark-written `airdelay_small.parquet`
-      with `nominal_delay` and `real_delay` labels.
+- [x] Add a small DLSA check script for label-bearing airdelay data.
+- [x] Replace the local `airdelay_small.parquet` artifact with a compact
+      `ArrDelay` plus 10-feature Parquet file.
 - [x] Migrate Python-native DARIMA core and local Spark demo.
 - [x] Add a DARIMA electricity-data example using StatsForecast AutoARIMA.
 - [x] Merge bundled electricity series into `data/electricity.parquet`.
