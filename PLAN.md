@@ -234,4 +234,6 @@ These can be added after the core migration paths are working.
 - [x] Add a DARIMA electricity-data example using StatsForecast AutoARIMA.
 - [x] Merge bundled electricity series into `data/electricity.parquet`.
 - [x] Migrate first DQR core slice and local Spark demo.
+- [x] Convert cleaned used-car data to `data/used_cars.parquet`.
+- [x] Add a DQR used-car example against the local Parquet data.
 - [ ] Revisit DTS once the first three migrations are stable.
