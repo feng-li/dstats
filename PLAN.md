@@ -223,8 +223,9 @@ These can be added after the core migration paths are working.
 - [x] Create Spark 4 virtualenv.
 - [x] Store local Spark environment settings in `.envrc`.
 - [x] Create flat `dstats` package skeleton.
-- [ ] Migrate shared Spark helper needed by DLSA.
-- [ ] Migrate DLSA core and local Spark demo.
+- [x] Migrate shared Spark helper needed by DLSA.
+- [x] Migrate first DLSA core slice.
+- [ ] Add a committed DLSA local demo/check.
 - [ ] Migrate DARIMA core and local Spark demo.
 - [ ] Migrate DQR core and local Spark demo.
 - [ ] Revisit DTS once the first three migrations are stable.
