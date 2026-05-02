@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dstats"
+version = "0.1.0"
+description = "Unified distributed statistical modeling utilities."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "pyspark[sql]>=4,<5",
+    "numpy",
+    "pandas",
+    "scipy",
+    "statsmodels",
+    "scikit-learn",
+]
+
+[tool.setuptools.packages.find]
+include = ["dstats"]
