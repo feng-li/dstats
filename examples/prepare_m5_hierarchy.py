@@ -1,4 +1,4 @@
-"""Prepare top-level M5 hierarchy aggregates from a sales CSV."""
+"""Prepare top-level M5 hierarchy aggregates from a sales CSV or Parquet file."""
 
 from __future__ import annotations
 
@@ -19,14 +19,14 @@ DEFAULT_OUTPUT = Path("data/m5_top_levels.parquet")
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("sales", type=Path, help="M5 sales_train_*.csv file")
+    parser.add_argument("sales", type=Path, help="M5 sales_train_* CSV or Parquet file")
     parser.add_argument("--out", type=Path, default=DEFAULT_OUTPUT)
     args = parser.parse_args()
 
     if not args.sales.exists():
         raise FileNotFoundError(args.sales)
 
-    sales = pd.read_csv(args.sales)
+    sales = _read_sales(args.sales)
     value_cols = infer_time_columns(sales, prefixes=("d_", "F"))
     aggregates = aggregate_m5_top_levels(sales, value_cols=value_cols)
 
@@ -40,6 +40,14 @@ def main() -> None:
         f"Wrote {len(aggregates)} top-level series and {len(value_cols)} time columns "
         f"to {args.out}"
     )
+
+
+def _read_sales(path: Path) -> pd.DataFrame:
+    if path.suffix == ".csv":
+        return pd.read_csv(path)
+    if path.suffix == ".parquet":
+        return pd.read_parquet(path)
+    raise ValueError(f"Unsupported sales file suffix: {path.suffix!r}")
 
 
 if __name__ == "__main__":

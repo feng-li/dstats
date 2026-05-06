@@ -110,6 +110,7 @@ python examples/prepare_airdelay_parquet.py --out data/airdelay_small.parquet --
 python examples/prepare_electricity_parquet.py --out data/electricity.parquet --mode overwrite
 python examples/prepare_used_cars_parquet.py --out data/used_cars.parquet --mode overwrite --coalesce 1
 python examples/prepare_m5_hierarchy.py /path/to/sales_train_evaluation.csv --out data/m5_top_levels.parquet
+python examples/prepare_m5_parquet.py --input-dir rawcode/m5-accuracy-competition/m5-data --out-dir data/m5 --mode overwrite
 ```
 
 Current local prepared datasets:
@@ -124,6 +125,7 @@ Current local prepared datasets:
   before modelling.
 - `data/m5_top_levels.parquet`: optional M5 top-level hierarchy aggregates
   prepared from a local M5 sales CSV.
+- `data/m5/`: ignored local Parquet conversion of the raw M5 CSV files.
 
 Large generated data files may be better kept outside normal Git history or
 managed with Git LFS.

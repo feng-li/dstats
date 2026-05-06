@@ -239,4 +239,5 @@ These can be added after the core migration paths are working.
 - [x] Add a DQR used-car example against the local Parquet data.
 - [x] Add compact pytest coverage for shared Spark helpers, DLSA, DARIMA, and DQR.
 - [x] Add M5-style hierarchy helpers and a small preparation example.
+- [x] Add a local M5 CSV-to-Parquet conversion script.
 - [ ] Revisit DTS once the first three migrations are stable.
