@@ -87,6 +87,7 @@ python examples/darima_smoke.py
 python examples/dqr_smoke.py
 python examples/forecast_hierarchical_smoke.py
 python examples/m5_top_level_naive.py --method seasonal
+python examples/m5_top_level_autoarima.py
 ```
 
 Prepared-data examples:

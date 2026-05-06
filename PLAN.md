@@ -243,4 +243,5 @@ These can be added after the core migration paths are working.
 - [x] Add optional full M5 hierarchy aggregation for prepared sales data.
 - [x] Add an M5 top-level RMSSE baseline example.
 - [x] Add last-value and seasonal-naive M5 baseline options.
+- [x] Add a top-level M5 AutoARIMA baseline example.
 - [ ] Revisit DTS once the first three migrations are stable.
