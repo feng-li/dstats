@@ -244,4 +244,5 @@ These can be added after the core migration paths are working.
 - [x] Add an M5 top-level RMSSE baseline example.
 - [x] Add last-value and seasonal-naive M5 baseline options.
 - [x] Add a top-level M5 AutoARIMA baseline example.
+- [x] Add a compact top-level M5 baseline comparison example.
 - [ ] Revisit DTS once the first three migrations are stable.
