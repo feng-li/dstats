@@ -4,7 +4,7 @@ Distributed statistical modelling utilities for Spark 4 and modern PySpark.
 
 This repository is consolidating the older standalone distributed-statistics
 projects into one small Python package named `dstats`. The current package is
-intentionally flat and pragmatic:
+kept small and pragmatic:
 
 ```text
 dstats/
@@ -12,6 +12,8 @@ dstats/
   dlsa.py
   darima.py
   dqr.py
+  forecast/
+    hierarchical.py
 ```
 
 The old project directories are kept as historical references during migration.
@@ -26,6 +28,8 @@ The first Spark 4 migration slices are available for:
   `statsforecast.models.AutoARIMA`.
 - `dstats.dqr`: distributed quantile regression by pilot sampling and one-step
   updating for dense numeric features.
+- `dstats.forecast.hierarchical`: small M5-style hierarchical forecast
+  aggregation and alignment helpers.
 
 `dts` is deferred until the first three migrated paths are stable.
 
@@ -81,6 +85,7 @@ Synthetic smoke checks:
 python examples/dlsa_smoke.py
 python examples/darima_smoke.py
 python examples/dqr_smoke.py
+python examples/forecast_hierarchical_smoke.py
 ```
 
 Prepared-data examples:
@@ -154,6 +159,13 @@ from dstats.spark import get_spark
 from dstats.spark import standardize_columns
 from dstats.spark import with_partition_id
 from dstats.spark import write_single_parquet
+```
+
+Forecast hierarchy helpers:
+
+```py
+from dstats.forecast.hierarchical import aggregate_m5_top_levels
+from dstats.forecast.hierarchical import top_level_alignment_metrics
 ```
 
 ## Migration Notes

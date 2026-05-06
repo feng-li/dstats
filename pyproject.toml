@@ -24,7 +24,7 @@ dev = [
 ]
 
 [tool.setuptools.packages.find]
-include = ["dstats"]
+include = ["dstats*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
