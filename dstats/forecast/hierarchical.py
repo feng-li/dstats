@@ -11,6 +11,22 @@ import pandas as pd
 
 
 M5_METADATA_COLUMNS = ("item_id", "dept_id", "cat_id", "store_id", "state_id")
+M5_TOP_LEVEL_GROUPS = (
+    ("state_id",),
+    ("store_id",),
+    ("cat_id",),
+    ("dept_id",),
+)
+M5_ALL_LEVEL_GROUPS = (
+    *M5_TOP_LEVEL_GROUPS,
+    ("state_id", "cat_id"),
+    ("state_id", "dept_id"),
+    ("store_id", "cat_id"),
+    ("store_id", "dept_id"),
+    ("item_id",),
+    ("item_id", "state_id"),
+    ("id",),
+)
 
 
 def infer_time_columns(
@@ -62,8 +78,28 @@ def aggregate_m5_top_levels(
 ) -> pd.DataFrame:
     """Aggregate bottom-level M5 forecasts to the notebook's top levels 1-5."""
 
+    return aggregate_m5_levels(
+        df,
+        levels="top",
+        value_cols=value_cols,
+        id_col=id_col,
+        metadata_cols=metadata_cols,
+    )
+
+
+def aggregate_m5_levels(
+    df: pd.DataFrame,
+    *,
+    levels: str = "top",
+    value_cols: Sequence[str] | None = None,
+    id_col: str = "id",
+    metadata_cols: Mapping[str, str] | None = None,
+) -> pd.DataFrame:
+    """Aggregate bottom-level M5 forecasts to top or full hierarchy levels."""
+
     data = df.copy()
     value_cols = _value_columns(data, value_cols)
+    group_specs = _m5_group_specs(levels, id_col=id_col)
 
     if metadata_cols:
         data = data.rename(columns={source: target for target, source in metadata_cols.items()})
@@ -76,8 +112,8 @@ def aggregate_m5_top_levels(
         raise ValueError(f"Missing M5 metadata columns: {missing_metadata}")
 
     aggregates = [_total_aggregate(data, value_cols)]
-    for group_col in ("state_id", "store_id", "cat_id", "dept_id"):
-        aggregates.append(_group_aggregate(data, group_col, value_cols))
+    for group_cols in group_specs:
+        aggregates.append(_group_aggregate(data, group_cols, value_cols))
 
     return pd.concat(aggregates, ignore_index=True).loc[:, ["id_str", *value_cols]]
 
@@ -164,15 +200,25 @@ def _total_aggregate(df: pd.DataFrame, value_cols: Sequence[str]) -> pd.DataFram
 
 def _group_aggregate(
     df: pd.DataFrame,
-    group_col: str,
+    group_cols: Sequence[str],
     value_cols: Sequence[str],
 ) -> pd.DataFrame:
-    out = df.groupby(group_col, as_index=False, sort=True)[list(value_cols)].sum()
-    out.insert(0, "id_str", out[group_col])
-    return out.drop(columns=[group_col])
+    group_cols = list(group_cols)
+    out = df.groupby(group_cols, as_index=False, sort=True)[list(value_cols)].sum()
+    out.insert(0, "id_str", out.loc[:, group_cols].astype(str).agg("_".join, axis=1))
+    return out.drop(columns=group_cols)
+
+
+def _m5_group_specs(levels: str, *, id_col: str) -> tuple[tuple[str, ...], ...]:
+    if levels == "top":
+        return M5_TOP_LEVEL_GROUPS
+    if levels == "all":
+        return tuple((id_col,) if spec == ("id",) else spec for spec in M5_ALL_LEVEL_GROUPS)
+    raise ValueError("levels must be one of: top, all")
 
 
 __all__ = [
+    "aggregate_m5_levels",
     "aggregate_m5_top_levels",
     "infer_time_columns",
     "parse_m5_id_columns",

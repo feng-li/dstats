@@ -110,6 +110,7 @@ python examples/prepare_airdelay_parquet.py --out data/airdelay_small.parquet --
 python examples/prepare_electricity_parquet.py --out data/electricity.parquet --mode overwrite
 python examples/prepare_used_cars_parquet.py --out data/used_cars.parquet --mode overwrite --coalesce 1
 python examples/prepare_m5_hierarchy.py /path/to/sales_train_evaluation.csv --out data/m5_top_levels.parquet
+python examples/prepare_m5_hierarchy.py data/m5/sales_train_evaluation.parquet --levels all --out data/m5_all_levels.parquet
 python examples/prepare_m5_parquet.py --input-dir rawcode/m5-accuracy-competition/m5-data --out-dir data/m5 --mode overwrite
 ```
 
@@ -170,6 +171,7 @@ Forecast hierarchy helpers:
 
 ```py
 from dstats.forecast.hierarchical import aggregate_m5_top_levels
+from dstats.forecast.hierarchical import aggregate_m5_levels
 from dstats.forecast.hierarchical import top_level_alignment_metrics
 ```
 

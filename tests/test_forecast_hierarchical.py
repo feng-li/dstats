@@ -5,6 +5,7 @@ import pandas as pd
 import pytest
 
 from dstats.forecast.hierarchical import aggregate_m5_top_levels
+from dstats.forecast.hierarchical import aggregate_m5_levels
 from dstats.forecast.hierarchical import infer_time_columns
 from dstats.forecast.hierarchical import parse_m5_id_columns
 from dstats.forecast.hierarchical import rmsse
@@ -51,6 +52,17 @@ def test_aggregate_m5_top_levels_sums_expected_groups():
     assert by_id.loc["TX_1", ["F1", "F2"]].tolist() == [5.0, 6.0]
     assert by_id.loc["HOBBIES", ["F1", "F2"]].tolist() == [4.0, 6.0]
     assert by_id.loc["FOODS_2", ["F1", "F2"]].tolist() == [5.0, 6.0]
+
+
+def test_aggregate_m5_levels_can_include_full_hierarchy():
+    out = aggregate_m5_levels(_bottom_forecasts(), levels="all")
+    by_id = out.set_index("id_str")
+
+    assert out.shape[0] == 26
+    assert by_id.loc["CA_HOBBIES", ["F1", "F2"]].tolist() == [4.0, 6.0]
+    assert by_id.loc["CA_1_HOBBIES_1", ["F1", "F2"]].tolist() == [4.0, 6.0]
+    assert by_id.loc["HOBBIES_1_001_CA", ["F1", "F2"]].tolist() == [1.0, 2.0]
+    assert by_id.loc["HOBBIES_1_001_CA_1_evaluation", ["F1", "F2"]].tolist() == [1.0, 2.0]
 
 
 def test_rmsse_uses_training_scale():

@@ -10,7 +10,7 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from dstats.forecast.hierarchical import aggregate_m5_top_levels
+from dstats.forecast.hierarchical import aggregate_m5_levels
 from dstats.forecast.hierarchical import infer_time_columns
 
 
@@ -21,6 +21,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("sales", type=Path, help="M5 sales_train_* CSV or Parquet file")
     parser.add_argument("--out", type=Path, default=DEFAULT_OUTPUT)
+    parser.add_argument("--levels", choices=["top", "all"], default="top")
     args = parser.parse_args()
 
     if not args.sales.exists():
@@ -28,7 +29,7 @@ def main() -> None:
 
     sales = _read_sales(args.sales)
     value_cols = infer_time_columns(sales, prefixes=("d_", "F"))
-    aggregates = aggregate_m5_top_levels(sales, value_cols=value_cols)
+    aggregates = aggregate_m5_levels(sales, levels=args.levels, value_cols=value_cols)
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     if args.out.suffix == ".csv":
@@ -37,7 +38,7 @@ def main() -> None:
         aggregates.to_parquet(args.out, index=False)
 
     print(
-        f"Wrote {len(aggregates)} top-level series and {len(value_cols)} time columns "
+        f"Wrote {len(aggregates)} {args.levels} hierarchy series and {len(value_cols)} time columns "
         f"to {args.out}"
     )
 
