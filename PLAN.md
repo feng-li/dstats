@@ -238,4 +238,5 @@ These can be added after the core migration paths are working.
 - [x] Convert cleaned used-car raw numeric data to `data/used_cars.parquet`.
 - [x] Add a DQR used-car example against the local Parquet data.
 - [x] Add compact pytest coverage for shared Spark helpers, DLSA, DARIMA, and DQR.
+- [x] Add M5-style hierarchy helpers and a small preparation example.
 - [ ] Revisit DTS once the first three migrations are stable.

@@ -109,6 +109,7 @@ The example datasets are prepared as Parquet so Spark can read them efficiently:
 python examples/prepare_airdelay_parquet.py --out data/airdelay_small.parquet --mode overwrite
 python examples/prepare_electricity_parquet.py --out data/electricity.parquet --mode overwrite
 python examples/prepare_used_cars_parquet.py --out data/used_cars.parquet --mode overwrite --coalesce 1
+python examples/prepare_m5_hierarchy.py /path/to/sales_train_evaluation.csv --out data/m5_top_levels.parquet
 ```
 
 Current local prepared datasets:
@@ -121,6 +122,8 @@ Current local prepared datasets:
 - `data/used_cars.parquet`: raw numeric used-car columns for DQR. The DQR
   example creates `log_price`, `intercept`, and standardized `z_*` features
   before modelling.
+- `data/m5_top_levels.parquet`: optional M5 top-level hierarchy aggregates
+  prepared from a local M5 sales CSV.
 
 Large generated data files may be better kept outside normal Git history or
 managed with Git LFS.
