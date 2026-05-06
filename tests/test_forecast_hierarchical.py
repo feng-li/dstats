@@ -8,6 +8,7 @@ from dstats.forecast.hierarchical import aggregate_m5_top_levels
 from dstats.forecast.hierarchical import aggregate_m5_levels
 from dstats.forecast.hierarchical import hierarchy_rmsse
 from dstats.forecast.hierarchical import infer_time_columns
+from dstats.forecast.hierarchical import naive_hierarchy_forecast
 from dstats.forecast.hierarchical import parse_m5_id_columns
 from dstats.forecast.hierarchical import rmsse
 from dstats.forecast.hierarchical import top_level_alignment_metrics
@@ -105,6 +106,31 @@ def test_hierarchy_rmsse_scores_each_row():
     by_id = out.set_index("id_str")
     assert by_id.loc["all", "rmsse"] == pytest.approx(np.sqrt(0.5 / 4.0))
     assert by_id.loc["CA", "rmsse"] == pytest.approx(np.sqrt(1.0 / 4.0))
+
+
+def test_naive_hierarchy_forecast_builds_seasonal_forecast():
+    hierarchy = pd.DataFrame(
+        {
+            "id_str": ["all", "CA"],
+            "d_1": [1.0, 10.0],
+            "d_2": [2.0, 20.0],
+            "d_3": [3.0, 30.0],
+            "d_4": [4.0, 40.0],
+            "d_5": [5.0, 50.0],
+        }
+    )
+
+    forecast = naive_hierarchy_forecast(
+        hierarchy,
+        train_cols=["d_1", "d_2", "d_3", "d_4", "d_5"],
+        horizon=4,
+        method="seasonal",
+        season_length=3,
+    )
+
+    assert forecast.columns.tolist() == ["id_str", "F1", "F2", "F3", "F4"]
+    assert forecast.loc[0, ["F1", "F2", "F3", "F4"]].tolist() == [3.0, 4.0, 5.0, 3.0]
+    assert forecast.loc[1, ["F1", "F2", "F3", "F4"]].tolist() == [30.0, 40.0, 50.0, 30.0]
 
 
 def test_top_level_alignment_metrics_compares_bottom_up_to_reference():

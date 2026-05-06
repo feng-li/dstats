@@ -1,4 +1,4 @@
-"""Evaluate a last-value baseline on prepared M5 top-level hierarchy data."""
+"""Evaluate simple naive baselines on prepared M5 top-level hierarchy data."""
 
 from __future__ import annotations
 
@@ -12,6 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from dstats.forecast.hierarchical import hierarchy_rmsse
 from dstats.forecast.hierarchical import infer_time_columns
+from dstats.forecast.hierarchical import naive_hierarchy_forecast
 
 
 DEFAULT_DATA = Path("data/m5_top_levels.parquet")
@@ -21,6 +22,8 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--path", type=Path, default=DEFAULT_DATA)
     parser.add_argument("--horizon", type=int, default=28)
+    parser.add_argument("--method", choices=["last", "seasonal"], default="seasonal")
+    parser.add_argument("--season-length", type=int, default=7)
     args = parser.parse_args()
 
     if args.horizon <= 0:
@@ -37,10 +40,13 @@ def main() -> None:
     actual_cols = day_cols[-args.horizon :]
     forecast_cols = [f"F{i}" for i in range(1, args.horizon + 1)]
 
-    forecast = pd.DataFrame({"id_str": hierarchy["id_str"]})
-    last_observed = hierarchy[train_cols[-1]]
-    for col in forecast_cols:
-        forecast[col] = last_observed
+    forecast = naive_hierarchy_forecast(
+        hierarchy,
+        train_cols=train_cols,
+        horizon=args.horizon,
+        method=args.method,
+        season_length=args.season_length,
+    )
 
     scores = hierarchy_rmsse(
         hierarchy,
@@ -52,7 +58,7 @@ def main() -> None:
 
     print(
         "M5 top-level naive baseline: "
-        f"series={len(scores)}, horizon={args.horizon}, "
+        f"method={args.method}, series={len(scores)}, horizon={args.horizon}, "
         f"mean_rmsse={scores['rmsse'].mean():.4f}"
     )
 

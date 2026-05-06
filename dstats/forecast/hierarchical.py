@@ -182,6 +182,41 @@ def hierarchy_rmsse(
     return pd.DataFrame({id_col: aligned[id_col], "rmsse": scores})
 
 
+def naive_hierarchy_forecast(
+    hierarchy: pd.DataFrame,
+    *,
+    train_cols: Sequence[str],
+    horizon: int,
+    method: str = "seasonal",
+    season_length: int = 7,
+    id_col: str = "id_str",
+    forecast_prefix: str = "F",
+) -> pd.DataFrame:
+    """Build a simple last-value or seasonal-naive hierarchy forecast."""
+
+    if horizon <= 0:
+        raise ValueError("horizon must be positive")
+    train_cols = list(train_cols)
+    _require_columns(hierarchy, [id_col, *train_cols], "hierarchy")
+
+    forecast = pd.DataFrame({id_col: hierarchy[id_col]})
+    if method == "last":
+        source_cols = [train_cols[-1]] * horizon
+    elif method == "seasonal":
+        if season_length <= 0:
+            raise ValueError("season_length must be positive")
+        if len(train_cols) < season_length:
+            raise ValueError("train_cols must contain at least season_length columns")
+        season_cols = train_cols[-season_length:]
+        source_cols = [season_cols[idx % season_length] for idx in range(horizon)]
+    else:
+        raise ValueError("method must be one of: last, seasonal")
+
+    for idx, source_col in enumerate(source_cols, start=1):
+        forecast[f"{forecast_prefix}{idx}"] = hierarchy[source_col]
+    return forecast
+
+
 def top_level_alignment_metrics(
     bottom_forecasts: pd.DataFrame,
     reference_forecasts: pd.DataFrame,
@@ -266,6 +301,7 @@ __all__ = [
     "aggregate_m5_top_levels",
     "hierarchy_rmsse",
     "infer_time_columns",
+    "naive_hierarchy_forecast",
     "parse_m5_id_columns",
     "rmsse",
     "top_level_alignment_metrics",
