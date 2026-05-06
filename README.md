@@ -86,6 +86,7 @@ python examples/dlsa_smoke.py
 python examples/darima_smoke.py
 python examples/dqr_smoke.py
 python examples/forecast_hierarchical_smoke.py
+python examples/m5_top_level_naive.py
 ```
 
 Prepared-data examples:
@@ -172,6 +173,7 @@ Forecast hierarchy helpers:
 ```py
 from dstats.forecast.hierarchical import aggregate_m5_top_levels
 from dstats.forecast.hierarchical import aggregate_m5_levels
+from dstats.forecast.hierarchical import hierarchy_rmsse
 from dstats.forecast.hierarchical import top_level_alignment_metrics
 ```
 

@@ -6,6 +6,7 @@ import pytest
 
 from dstats.forecast.hierarchical import aggregate_m5_top_levels
 from dstats.forecast.hierarchical import aggregate_m5_levels
+from dstats.forecast.hierarchical import hierarchy_rmsse
 from dstats.forecast.hierarchical import infer_time_columns
 from dstats.forecast.hierarchical import parse_m5_id_columns
 from dstats.forecast.hierarchical import rmsse
@@ -73,6 +74,37 @@ def test_rmsse_uses_training_scale():
     )
 
     assert value == pytest.approx(np.sqrt((2.0 / 3.0) / (14.0 / 3.0)))
+
+
+def test_hierarchy_rmsse_scores_each_row():
+    actual = pd.DataFrame(
+        {
+            "id_str": ["all", "CA"],
+            "d_1": [1.0, 2.0],
+            "d_2": [3.0, 4.0],
+            "d_3": [5.0, 5.0],
+            "d_4": [7.0, 8.0],
+        }
+    )
+    forecast = pd.DataFrame(
+        {
+            "id_str": ["all", "CA"],
+            "F1": [5.0, 4.0],
+            "F2": [8.0, 9.0],
+        }
+    )
+
+    out = hierarchy_rmsse(
+        actual,
+        forecast,
+        train_cols=["d_1", "d_2"],
+        actual_cols=["d_3", "d_4"],
+        forecast_cols=["F1", "F2"],
+    )
+
+    by_id = out.set_index("id_str")
+    assert by_id.loc["all", "rmsse"] == pytest.approx(np.sqrt(0.5 / 4.0))
+    assert by_id.loc["CA", "rmsse"] == pytest.approx(np.sqrt(1.0 / 4.0))
 
 
 def test_top_level_alignment_metrics_compares_bottom_up_to_reference():

@@ -144,6 +144,44 @@ def rmsse(
     return float(out) if np.ndim(out) == 0 else out
 
 
+def hierarchy_rmsse(
+    actual_hierarchy: pd.DataFrame,
+    forecast_hierarchy: pd.DataFrame,
+    *,
+    train_cols: Sequence[str],
+    actual_cols: Sequence[str],
+    forecast_cols: Sequence[str] | None = None,
+    id_col: str = "id_str",
+) -> pd.DataFrame:
+    """Compute RMSSE for each hierarchy row."""
+
+    forecast_cols = list(actual_cols) if forecast_cols is None else list(forecast_cols)
+    actual_cols = list(actual_cols)
+    train_cols = list(train_cols)
+    if len(actual_cols) != len(forecast_cols):
+        raise ValueError("actual_cols and forecast_cols must have the same length")
+    if id_col not in actual_hierarchy.columns or id_col not in forecast_hierarchy.columns:
+        raise ValueError(f"Both inputs must include {id_col!r}")
+
+    _require_columns(actual_hierarchy, [id_col, *train_cols, *actual_cols], "actual_hierarchy")
+    _require_columns(forecast_hierarchy, [id_col, *forecast_cols], "forecast_hierarchy")
+
+    aligned = actual_hierarchy.loc[:, [id_col, *train_cols, *actual_cols]].merge(
+        forecast_hierarchy.loc[:, [id_col, *forecast_cols]],
+        on=id_col,
+        how="inner",
+    )
+    if aligned.empty:
+        raise ValueError("No matching hierarchy ids found")
+
+    scores = rmsse(
+        aligned.loc[:, actual_cols].to_numpy(dtype=float),
+        aligned.loc[:, forecast_cols].to_numpy(dtype=float),
+        train=aligned.loc[:, train_cols].to_numpy(dtype=float),
+    )
+    return pd.DataFrame({id_col: aligned[id_col], "rmsse": scores})
+
+
 def top_level_alignment_metrics(
     bottom_forecasts: pd.DataFrame,
     reference_forecasts: pd.DataFrame,
@@ -192,6 +230,12 @@ def _value_columns(df: pd.DataFrame, value_cols: Sequence[str] | None) -> list[s
     return cols
 
 
+def _require_columns(df: pd.DataFrame, columns: Sequence[str], name: str) -> None:
+    missing = [col for col in columns if col not in df.columns]
+    if missing:
+        raise ValueError(f"{name} is missing required columns: {missing}")
+
+
 def _total_aggregate(df: pd.DataFrame, value_cols: Sequence[str]) -> pd.DataFrame:
     out = pd.DataFrame([df.loc[:, value_cols].sum(numeric_only=True)])
     out.insert(0, "id_str", "all")
@@ -220,6 +264,7 @@ def _m5_group_specs(levels: str, *, id_col: str) -> tuple[tuple[str, ...], ...]:
 __all__ = [
     "aggregate_m5_levels",
     "aggregate_m5_top_levels",
+    "hierarchy_rmsse",
     "infer_time_columns",
     "parse_m5_id_columns",
     "rmsse",
